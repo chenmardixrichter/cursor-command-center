@@ -64,12 +64,56 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  var payload = (e && e.parameter && e.parameter.d) ? e.parameter.d : null;
+  if (payload) {
+    try {
+      var data = JSON.parse(payload);
+      var ss = getOrCreateSheet();
+      var now = new Date().toISOString();
+      var event = data.event || 'unknown';
+
+      if (event === 'daily_ping') {
+        var daily = ss.getSheetByName('daily');
+        daily.appendRow([
+          now,
+          data.userId || '',
+          data.macUser || '',
+          data.version || '',
+          data.activeTiles || 0,
+          data.agentTurnsToday || 0,
+          data.sessionStart || ''
+        ]);
+      }
+
+      var events = ss.getSheetByName('events');
+      events.appendRow([
+        now,
+        event,
+        data.user || data.macUser || '',
+        data.host || '',
+        data.version || '',
+        data.userId || '',
+        data.activeTiles || '',
+        data.agentTurnsToday || '',
+        JSON.stringify(data)
+      ]);
+
+      return ContentService
+        .createTextOutput(JSON.stringify({ status: 'ok' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   var ss = getOrCreateSheet();
   return ContentService
     .createTextOutput(JSON.stringify({
       status: 'ok',
       sheetUrl: ss.getUrl(),
-      message: 'Command Center Analytics endpoint. POST events here.'
+      message: 'Command Center Analytics endpoint. Send data via ?d={json}'
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

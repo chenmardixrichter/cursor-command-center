@@ -1,7 +1,7 @@
 import Foundation
 
 public enum Telemetry {
-    private static let webhookURL = "WEBHOOK_URL_PLACEHOLDER"
+    private static let webhookURL = "https://script.google.com/macros/s/AKfycbzeo54WT_Xn8KPKqiOSr8ARAkG-6ACCyhaz535yb4vNsPFix6XMn0mgSFApamFQKUQ/exec"
     private static let debounceInterval: TimeInterval = 86400 // 24 hours
 
     private static var userIdKey = "cc_telemetry_user_id"
@@ -70,14 +70,14 @@ public enum Telemetry {
     // MARK: - Private
 
     private static func post(_ payload: [String: Any]) {
-        guard let url = URL(string: webhookURL),
-              let body = try? JSONSerialization.data(withJSONObject: payload)
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+              let jsonString = String(data: jsonData, encoding: .utf8),
+              let encoded = jsonString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "\(webhookURL)?d=\(encoded)")
         else { return }
 
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = body
+        request.httpMethod = "GET"
         request.timeoutInterval = 10
 
         URLSession.shared.dataTask(with: request) { _, _, _ in }.resume()
