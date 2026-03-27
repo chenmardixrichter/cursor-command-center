@@ -65,7 +65,7 @@ public final class AgentRegistry: @unchecked Sendable {
     ///
     /// Matching priority:
     /// 1. Signal file ID matches a known entry -> same agent, same turn
-    /// 2. Same workspace path + idle/done + most recently active -> cross-turn continuity
+    /// 2. Same workspace path -> reuse that tile (one tile per workspace; each turn uses a new file ID)
     /// 3. No match -> new agent tile
     public func processSignals(_ signals: [AgentSignalV2], now: Date = Date()) -> [AgentTile] {
         lock.lock()
@@ -124,15 +124,18 @@ public final class AgentRegistry: @unchecked Sendable {
             return
         }
 
-        let candidates = entries.enumerated().filter { _, entry in
-            !entry.dismissed
-                && entry.workspacePath == signal.workspacePath
-                && (entry.state == "idle" || entry.state == "recentlyCompleted" || entry.state == "waitingForInput")
-                && !matchedFileIds.contains(entry.lastSignalFileId ?? "")
+        // Same workspace, new signal file (new agent turn). Always reuse one tile per workspace.
+        let sameWorkspace = entries.enumerated().filter { _, entry in
+            !entry.dismissed && entry.workspacePath == signal.workspacePath
         }
-        if let best = candidates.max(by: {
+        if let best = sameWorkspace.max(by: {
             ($0.element.lastActiveAt ?? .distantPast) < ($1.element.lastActiveAt ?? .distantPast)
         }) {
+            if sameWorkspace.count > 1 {
+                for other in sameWorkspace where other.offset != best.offset {
+                    entries[other.offset].dismissed = true
+                }
+            }
             updateEntry(at: best.offset, from: signal, now: now)
             matchedFileIds.insert(signal.fileId)
             return
