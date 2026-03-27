@@ -128,7 +128,6 @@ enum CursorWindowActivator {
 private struct POCContentView: View {
     @EnvironmentObject private var viewModel: POCViewModel
     @State private var showSettings = false
-    @State private var setupOK = FirstLaunchSetup.isFullySetUp
     @State private var showUninstallConfirm = false
 
     private var thinkingCount: Int {
@@ -166,13 +165,6 @@ private struct POCContentView: View {
                 }
             }
             .padding(.bottom, 4)
-
-            if !setupOK {
-                SetupBanner {
-                    let result = FirstLaunchSetup.performSetup()
-                    setupOK = result.success
-                }
-            }
 
             if viewModel.tiles.isEmpty {
                 RadarEmptyState()
@@ -258,7 +250,6 @@ private struct POCContentView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Button("Reinstall Cursor Rule") {
                     FirstLaunchSetup.performSetup()
-                    setupOK = true
                 }
                 .font(.caption)
                 Button("Uninstall Command Center...") {
@@ -285,32 +276,6 @@ private struct POCContentView: View {
         } message: {
             Text("This will remove the app, the Cursor agent rule, and all signal data. Your Cursor projects are not affected.")
         }
-    }
-}
-
-private struct SetupBanner: View {
-    let onFix: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-                .font(.caption)
-            Text("Cursor rule not installed — agents can't report to the dashboard.")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.85))
-            Spacer()
-            Button("Fix Now") { onFix() }
-                .buttonStyle(.borderedProminent)
-                .tint(accentTeal)
-                .controlSize(.small)
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.orange.opacity(0.1))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.3), lineWidth: 1))
-        )
     }
 }
 

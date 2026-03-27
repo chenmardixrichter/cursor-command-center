@@ -35,7 +35,7 @@ No data leaves your machine. No cloud. No accounts. Fully local.
 
 ## Permissions
 
-On first launch, macOS may ask for **Accessibility** permission in **System Settings > Privacy & Security**. This is used to raise specific Cursor windows when you click a tile.
+No permissions are required for core functionality. If you want the "click tile to focus window" feature, macOS will ask for **Accessibility** permission the first time you click a tile. This is optional — the dashboard works fully without it.
 
 ## Features
 
