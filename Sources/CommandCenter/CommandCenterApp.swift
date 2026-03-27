@@ -338,7 +338,7 @@ private struct TileView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top) {
+            HStack(alignment: .top, spacing: 6) {
                 if isEditing {
                     TextField("Tile name", text: $editText, onCommit: commitEdit)
                         .font(.system(.body, design: .monospaced, weight: .semibold))
@@ -355,6 +355,8 @@ private struct TileView: View {
                         .font(.system(.body, design: .monospaced, weight: .semibold))
                         .foregroundStyle(tile.agentState == .idle ? textMid : .white)
                         .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .onTapGesture(count: 2) {
                             editText = tile.displayName
                             isEditing = true
@@ -363,22 +365,25 @@ private struct TileView: View {
                             }
                         }
                 }
-                Spacer(minLength: 4)
-                if isHovering {
-                    Button {
-                        onDismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(textDim)
-                            .frame(width: 16, height: 16)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(Circle())
+                // Fixed slot so the dismiss control never steals width from the title on hover.
+                ZStack {
+                    if isHovering {
+                        Button {
+                            onDismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(textDim)
+                                .frame(width: 16, height: 16)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Remove agent tile")
+                        .transition(.opacity)
                     }
-                    .buttonStyle(.plain)
-                    .help("Remove agent tile")
-                    .transition(.opacity)
                 }
+                .frame(width: 20, height: 18)
             }
 
             Text(tile.workspacePath)
