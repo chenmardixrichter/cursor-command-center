@@ -1,0 +1,40 @@
+---
+description: "MANDATORY: Write Command Center agent signal at the START and END of EVERY turn"
+alwaysApply: true
+---
+
+# Command Center — agent signal (MANDATORY, EVERY TURN)
+
+> **YOU MUST RUN THE START SIGNAL BEFORE DOING ANYTHING ELSE.**
+> **This applies to EVERY user message — not just the first one in a conversation.**
+> **If you are unsure whether you already wrote the signal this turn, write it again. Duplicate writes are harmless; missing writes break the dashboard.**
+
+## START of turn — mark thinking
+
+Run this as your **absolute first action** when you receive a user message:
+
+```bash
+source ~/.cursor/bin/cc-signal start "BRIEF_TASK_DESCRIPTION"
+```
+
+Replace `BRIEF_TASK_DESCRIPTION` with a 3–8 word summary (e.g. "Fixing lint errors", "Reviewing PR changes"). Under 60 chars.
+
+The `source` command sets `$CC_AGENT_ID` in your shell session so the end signal can find it.
+
+## END of turn — mark done
+
+After all work is finished, right before your final reply:
+
+```bash
+~/.cursor/bin/cc-signal done "BRIEF_TASK_DESCRIPTION"
+```
+
+Uses the same `$CC_AGENT_ID` from the start signal automatically.
+
+## Rules
+
+- **EVERY turn. EVERY workspace. No exceptions.** Even trivial tasks. Even plan-mode-only turns. Even clarifying questions.
+- Run `source ~/.cursor/bin/cc-signal start` BEFORE any other shell command or tool call.
+- Run `~/.cursor/bin/cc-signal done` AFTER all work is complete, alongside the osascript notification.
+- If the shell session resets mid-turn and `$CC_AGENT_ID` is lost, generate a new one: `source ~/.cursor/bin/cc-signal start "..."` again.
+- The signal file expires after 5 minutes of no update — if your turn takes longer, the dashboard loses track. For long turns, re-run the start command periodically.

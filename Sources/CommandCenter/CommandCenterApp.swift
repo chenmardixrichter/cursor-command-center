@@ -22,6 +22,12 @@ struct CommandCenterApp: App {
                 .environmentObject(viewModel)
                 .onAppear {
                     viewModel.start()
+                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+                    Telemetry.sendDailyPingIfNeeded(
+                        version: version,
+                        activeTiles: viewModel.tiles.count,
+                        agentTurnsToday: 0
+                    )
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         FloatingWindowController.makeKeyWindowFloat()
                     }
@@ -34,9 +40,23 @@ struct CommandCenterApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let wasSetUp = FirstLaunchSetup.isFullySetUp
+        if !wasSetUp {
+            let result = FirstLaunchSetup.performSetup()
+            if !result.success {
+                NSLog("[CommandCenter] Setup issues: \(result.errors.joined(separator: "; "))")
+            }
+            if result.success {
+                Telemetry.sendInstallPing(version: appVersion)
+            }
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             FloatingWindowController.makeKeyWindowFloat()
         }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
     }
 }
 
@@ -108,6 +128,8 @@ enum CursorWindowActivator {
 private struct POCContentView: View {
     @EnvironmentObject private var viewModel: POCViewModel
     @State private var showSettings = false
+    @State private var setupOK = FirstLaunchSetup.isFullySetUp
+    @State private var showUninstallConfirm = false
 
     private var thinkingCount: Int {
         viewModel.tiles.filter { $0.agentState == .thinking }.count
@@ -144,6 +166,13 @@ private struct POCContentView: View {
                 }
             }
             .padding(.bottom, 4)
+
+            if !setupOK {
+                SetupBanner {
+                    let result = FirstLaunchSetup.performSetup()
+                    setupOK = result.success
+                }
+            }
 
             if viewModel.tiles.isEmpty {
                 RadarEmptyState()
@@ -225,9 +254,63 @@ private struct POCContentView: View {
                     .foregroundStyle(.tertiary)
                     .textSelection(.enabled)
             }
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Reinstall Cursor Rule") {
+                    FirstLaunchSetup.performSetup()
+                    setupOK = true
+                }
+                .font(.caption)
+                Button("Uninstall Command Center...") {
+                    showUninstallConfirm = true
+                }
+                .font(.caption)
+                .foregroundStyle(.red)
+            }
         }
         .padding()
         .frame(width: 340)
+        .alert("Uninstall Command Center?", isPresented: $showUninstallConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Uninstall", role: .destructive) {
+                let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+                Telemetry.sendUninstallPing(version: version)
+                FirstLaunchSetup.performUninstall()
+                let appPath = "/Applications/Command Center.app"
+                try? FileManager.default.removeItem(atPath: appPath)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    NSApplication.shared.terminate(nil)
+                }
+            }
+        } message: {
+            Text("This will remove the app, the Cursor agent rule, and all signal data. Your Cursor projects are not affected.")
+        }
+    }
+}
+
+private struct SetupBanner: View {
+    let onFix: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.caption)
+            Text("Cursor rule not installed — agents can't report to the dashboard.")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.85))
+            Spacer()
+            Button("Fix Now") { onFix() }
+                .buttonStyle(.borderedProminent)
+                .tint(accentTeal)
+                .controlSize(.small)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.orange.opacity(0.1))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+        )
     }
 }
 
