@@ -1,0 +1,73 @@
+{
+  "name": "command-center-agent-signal",
+  "displayName": "Command Center — Agent turn signal",
+  "description": "Writes command-center-agent-signal.json so Command Center can show thinking while your message is queued / agent is on-turn.",
+  "version": "0.2.4",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:commandCenterAgentSignal.toggleCommandLogging",
+    "onCommand:commandCenterAgentSignal.openCommandLogFile"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "commandCenterAgentSignal.setTurnActive",
+        "title": "Command Center: Mark agent turn active (test)"
+      },
+      {
+        "command": "commandCenterAgentSignal.clearTurn",
+        "title": "Command Center: Clear agent turn signal"
+      },
+      {
+        "command": "commandCenterAgentSignal.toggleCommandLogging",
+        "title": "Command Center: Toggle command logging (map Send/Stop IDs)"
+      },
+      {
+        "command": "commandCenterAgentSignal.showCommandLog",
+        "title": "Command Center: Show command log"
+      },
+      {
+        "command": "commandCenterAgentSignal.openCommandLogFile",
+        "title": "Command Center: Open command log file"
+      }
+    ],
+    "configuration": {
+      "title": "Command Center agent signal",
+      "properties": {
+        "commandCenterAgentSignal.logExecutedCommands": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Log executed command ids to **Output → Command Center: command log**. Use this to find real Cursor ids for Send / Stop / cancel, then add them in `extension.ts`."
+        },
+        "commandCenterAgentSignal.logOnlyLikelyChat": {
+          "type": "boolean",
+          "default": true,
+          "description": "When logging, skip commands whose id does not look chat/agent-related (much less noise). Turn off to log every command."
+        },
+        "commandCenterAgentSignal.completionCommandIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "markdownDescription": "Exact command ids that fire when an **AI reply finishes** (same moment as Cursor’s optional completion sound / `cursor.composer.shouldChimeAfterChatFinishes`). Enable **command logging**, run a full reply, copy the id that appears at finish into this list — Command Center uses `lastResponseCompletedAt` in `.cursor/command-center-agent-signal.json` (no audio)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.96.0",
+    "typescript": "^5.4.0"
+  }
+}

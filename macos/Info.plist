@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>CommandCenter</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.chenma.CommandCenter</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Command Center</string>
+	<key>CFBundleDisplayName</key>
+	<string>Command Center</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>11</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSQuitAlwaysKeepsWindows</key>
+	<false/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Optional: only used when you turn on “Live OS windows” to read Cursor window titles from the system. Default mode uses workspace files on disk and does not need Screen Recording.</string>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>Command Center reads the Cursor UI (e.g. Stop/Cancel in the accessibility tree) to show high-confidence “Thinking” when an agent turn is active.</string>
+</dict>
+</plist>

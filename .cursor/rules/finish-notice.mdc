@@ -1,0 +1,19 @@
+---
+description: Append a finish notice to the end of every assistant reply
+alwaysApply: true
+---
+
+# Finish notice on every response
+
+**Requirement:** End **every** assistant message with a **finish notice** as the **last line** (after code blocks, lists, and the final paragraph).
+
+Use this exact line:
+
+```text
+◆ finish
+```
+
+- Include it for **all** replies—short acknowledgments, “test”, one-liners, and long answers.
+- If the reply is only a finish notice, the entire message may be just that line.
+
+This gives you and any tooling a consistent “response complete” marker without relying on memory.

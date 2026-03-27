@@ -1,0 +1,22 @@
+# Swift / SPM
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+
+# Cursor extension
+cursor-extension/**/node_modules/
+cursor-extension/**/out/
+cursor-extension/**/*.vsix
+
+# Command Center runtime files (never commit)
+.cursor/command-center-agent-signal.json
+.cursor/command-center-agents/
+.cursor/command-center-command-log.txt
+
+# macOS
+.DS_Store
+*.swp
+*~
