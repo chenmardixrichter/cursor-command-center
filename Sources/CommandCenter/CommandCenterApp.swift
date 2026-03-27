@@ -4,6 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 private let accentTeal = Color(red: 0.0, green: 0.85, blue: 0.75)
+private let accentAmber = Color(red: 1.0, green: 0.75, blue: 0.2)
 private let accentGreen = Color(red: 0.2, green: 0.9, blue: 0.5)
 private let bgDark = Color(red: 0.06, green: 0.09, blue: 0.12)
 private let bgTile = Color(red: 0.08, green: 0.12, blue: 0.16)
@@ -133,6 +134,9 @@ private struct POCContentView: View {
     private var thinkingCount: Int {
         viewModel.tiles.filter { $0.agentState == .thinking }.count
     }
+    private var waitingCount: Int {
+        viewModel.tiles.filter { $0.agentState == .waitingForInput }.count
+    }
     private var doneCount: Int {
         viewModel.tiles.filter { $0.agentState == .recentlyCompleted }.count
     }
@@ -181,7 +185,7 @@ private struct POCContentView: View {
                                     viewModel.acknowledgeDone(forAgentId: tile.id)
                                 },
                                 onActivate: {
-                                    if tile.agentState == .recentlyCompleted {
+                                    if tile.agentState == .recentlyCompleted || tile.agentState == .waitingForInput {
                                         viewModel.acknowledgeDone(forAgentId: tile.id)
                                     }
                                     CursorWindowActivator.activate(tile: tile)
@@ -213,6 +217,11 @@ private struct POCContentView: View {
             if thinkingCount > 0 {
                 Text("\(thinkingCount) thinking")
                     .foregroundStyle(accentTeal)
+                separator
+            }
+            if waitingCount > 0 {
+                Text("\(waitingCount) waiting")
+                    .foregroundStyle(accentAmber)
                 separator
             }
             if doneCount > 0 {
@@ -308,6 +317,7 @@ private struct TileView: View {
                     Text(tile.displayName)
                         .font(.system(.body, design: .monospaced, weight: .semibold))
                         .foregroundStyle(tile.agentState == .idle ? textMid : .white)
+
                         .lineLimit(1)
                         .onTapGesture(count: 2) {
                             editText = tile.displayName
@@ -385,6 +395,15 @@ private struct TileView: View {
                     .font(.system(.caption2, design: .monospaced, weight: .bold))
                     .foregroundStyle(accentTeal)
             }
+        case .waitingForInput:
+            HStack(spacing: 6) {
+                Image(systemName: "hand.raised.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(accentAmber)
+                Text("WAITING")
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundStyle(accentAmber)
+            }
         case .recentlyCompleted:
             HStack(spacing: 6) {
                 Image(systemName: "checkmark")
@@ -404,6 +423,7 @@ private struct TileView: View {
     private var tileBorderColor: Color {
         switch tile.agentState {
         case .thinking: return accentTeal.opacity(0.5)
+        case .waitingForInput: return accentAmber.opacity(0.5)
         case .recentlyCompleted: return accentGreen.opacity(0.4)
         case .idle: return borderIdle
         }
@@ -416,6 +436,7 @@ private struct TileView: View {
     private var tileShadowColor: Color {
         switch tile.agentState {
         case .thinking: return accentTeal.opacity(0.2)
+        case .waitingForInput: return accentAmber.opacity(0.2)
         case .recentlyCompleted: return accentGreen.opacity(0.15)
         case .idle: return .clear
         }

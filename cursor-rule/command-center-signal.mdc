@@ -21,20 +21,26 @@ Replace `BRIEF_TASK_DESCRIPTION` with a 3–8 word summary (e.g. "Fixing lint er
 
 The `source` command sets `$CC_AGENT_ID` in your shell session so the end signal can find it.
 
-## END of turn — mark done
+## END of turn — choose the right signal
 
-After all work is finished, right before your final reply:
-
+### If you COMPLETED the task:
 ```bash
 ~/.cursor/bin/cc-signal done "BRIEF_TASK_DESCRIPTION"
 ```
 
-Uses the same `$CC_AGENT_ID` from the start signal automatically.
+### If you are WAITING for user input (approval, clarification, confirmation):
+```bash
+~/.cursor/bin/cc-signal waiting "Waiting for approval"
+```
+
+Use `waiting` when you pause for user action — e.g. asking a question, requesting approval for file changes, presenting options to choose from, or any time the user needs to respond before you can continue.
+
+Use `done` only when the task is fully finished and no further user action is needed.
 
 ## Rules
 
 - **EVERY turn. EVERY workspace. No exceptions.** Even trivial tasks. Even plan-mode-only turns. Even clarifying questions.
 - Run `source ~/.cursor/bin/cc-signal start` BEFORE any other shell command or tool call.
-- Run `~/.cursor/bin/cc-signal done` AFTER all work is complete, alongside the osascript notification.
+- Run `~/.cursor/bin/cc-signal done` or `~/.cursor/bin/cc-signal waiting` AFTER all work is complete.
 - If the shell session resets mid-turn and `$CC_AGENT_ID` is lost, generate a new one: `source ~/.cursor/bin/cc-signal start "..."` again.
 - The signal file expires after 5 minutes of no update — if your turn takes longer, the dashboard loses track. For long turns, re-run the start command periodically.

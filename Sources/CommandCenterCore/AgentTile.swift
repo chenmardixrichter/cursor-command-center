@@ -11,6 +11,7 @@ public struct AgentTile: Identifiable, Equatable, Sendable {
     public enum AgentState: String, Sendable {
         case idle
         case thinking
+        case waitingForInput
         case recentlyCompleted
     }
 

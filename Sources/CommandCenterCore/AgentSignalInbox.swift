@@ -3,6 +3,7 @@ import Foundation
 public struct AgentSignalV2: Equatable, Sendable {
     public var fileId: String
     public var agentTurnActive: Bool
+    public var awaitingInput: Bool
     public var updatedAt: Date
     public var lastResponseCompletedAt: Date?
     public var workspacePath: String
@@ -106,6 +107,7 @@ public enum AgentSignalInbox {
         return AgentSignalV2(
             fileId: "legacy-\(leafName)",
             agentTurnActive: active,
+            awaitingInput: false,
             updatedAt: at,
             lastResponseCompletedAt: completedAt,
             workspacePath: workspacePath,
@@ -142,12 +144,14 @@ public enum AgentSignalInbox {
 
         let workspacePath = obj["workspacePath"] as? String ?? ""
         let taskDescription = obj["taskDescription"] as? String
+        let awaiting = obj["awaitingInput"] as? Bool ?? false
 
         let fileId = url.deletingPathExtension().lastPathComponent
 
         return AgentSignalV2(
             fileId: fileId,
             agentTurnActive: active,
+            awaitingInput: awaiting,
             updatedAt: at,
             lastResponseCompletedAt: completedAt,
             workspacePath: workspacePath,

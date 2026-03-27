@@ -107,7 +107,7 @@ public final class AgentRegistry: @unchecked Sendable {
         let candidates = entries.enumerated().filter { _, entry in
             !entry.dismissed
                 && entry.workspacePath == signal.workspacePath
-                && (entry.state == "idle" || entry.state == "recentlyCompleted")
+                && (entry.state == "idle" || entry.state == "recentlyCompleted" || entry.state == "waitingForInput")
                 && !matchedFileIds.contains(entry.lastSignalFileId ?? "")
         }
         if let best = candidates.max(by: {
@@ -148,11 +148,13 @@ public final class AgentRegistry: @unchecked Sendable {
         let signalState = stateFromSignal(signal, now: now)
         if signalState == "thinking" {
             entries[index].state = "thinking"
+        } else if signalState == "waitingForInput" {
+            entries[index].state = "waitingForInput"
         } else if signalState == "recentlyCompleted" {
-            if entries[index].state == "thinking" {
+            if entries[index].state == "thinking" || entries[index].state == "waitingForInput" {
                 entries[index].state = "recentlyCompleted"
             }
-        } else if entries[index].state == "thinking" {
+        } else if entries[index].state == "thinking" || entries[index].state == "waitingForInput" {
             entries[index].state = "idle"
         }
     }
@@ -160,6 +162,9 @@ public final class AgentRegistry: @unchecked Sendable {
     private func stateFromSignal(_ signal: AgentSignalV2, now: Date) -> String {
         if signal.agentTurnActive {
             return "thinking"
+        }
+        if signal.awaitingInput {
+            return "waitingForInput"
         }
         if signal.lastResponseCompletedAt != nil {
             return "recentlyCompleted"
@@ -172,7 +177,9 @@ public final class AgentRegistry: @unchecked Sendable {
     public func acknowledgeDone(agentId: String) {
         lock.lock()
         defer { lock.unlock() }
-        if let idx = entries.firstIndex(where: { $0.agentId == agentId && $0.state == "recentlyCompleted" }) {
+        if let idx = entries.firstIndex(where: {
+            $0.agentId == agentId && ($0.state == "recentlyCompleted" || $0.state == "waitingForInput")
+        }) {
             entries[idx].state = "idle"
             save()
         }

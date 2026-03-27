@@ -93,93 +93,59 @@ public enum FirstLaunchSetup {
 
     // MARK: - Embedded file contents
 
-    private static let ruleContent = """
+    private static var ruleContent: String {
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cursor/rules/command-center-signal.mdc")
+        if let existing = try? String(contentsOf: url, encoding: .utf8), !existing.isEmpty {
+            return existing
+        }
+        return fallbackRuleContent
+    }
+
+    private static var helperScriptContent: String {
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cursor/bin/cc-signal")
+        if let existing = try? String(contentsOf: url, encoding: .utf8), !existing.isEmpty {
+            return existing
+        }
+        return fallbackHelperContent
+    }
+
+    private static let fallbackRuleContent = """
     ---
     description: "MANDATORY: Write Command Center agent signal at the START and END of EVERY turn"
     alwaysApply: true
     ---
-
     # Command Center — agent signal (MANDATORY, EVERY TURN)
-
-    > **YOU MUST RUN THE START SIGNAL BEFORE DOING ANYTHING ELSE.**
-    > **This applies to EVERY user message — not just the first one in a conversation.**
-    > **If you are unsure whether you already wrote the signal this turn, write it again. Duplicate writes are harmless; missing writes break the dashboard.**
-
-    ## START of turn — mark thinking
-
-    Run this as your **absolute first action** when you receive a user message:
-
-    ```bash
-    source ~/.cursor/bin/cc-signal start "BRIEF_TASK_DESCRIPTION"
-    ```
-
-    Replace `BRIEF_TASK_DESCRIPTION` with a 3–8 word summary (e.g. "Fixing lint errors", "Reviewing PR changes"). Under 60 chars.
-
-    The `source` command sets `$CC_AGENT_ID` in your shell session so the end signal can find it.
-
-    ## END of turn — mark done
-
-    After all work is finished, right before your final reply:
-
-    ```bash
-    ~/.cursor/bin/cc-signal done "BRIEF_TASK_DESCRIPTION"
-    ```
-
-    Uses the same `$CC_AGENT_ID` from the start signal automatically.
-
-    ## Rules
-
-    - **EVERY turn. EVERY workspace. No exceptions.** Even trivial tasks. Even plan-mode-only turns. Even clarifying questions.
-    - Run `source ~/.cursor/bin/cc-signal start` BEFORE any other shell command or tool call.
-    - Run `~/.cursor/bin/cc-signal done` AFTER all work is complete, alongside the osascript notification.
-    - If the shell session resets mid-turn and `$CC_AGENT_ID` is lost, generate a new one: `source ~/.cursor/bin/cc-signal start "..."` again.
-    - The signal file expires after 5 minutes of no update — if your turn takes longer, the dashboard loses track. For long turns, re-run the start command periodically.
+    Run `source ~/.cursor/bin/cc-signal start "description"` at the START of every turn.
+    Run `~/.cursor/bin/cc-signal done "description"` or `~/.cursor/bin/cc-signal waiting "description"` at the END.
     """
 
-    private static let helperScriptContent = """
+    private static let fallbackHelperContent = """
     #!/usr/bin/env bash
-    # Command Center agent signal helper.
-    # Usage:
-    #   source cc-signal start "Brief task description"   (sets CC_AGENT_ID in caller's env)
-    #   cc-signal done  "Brief task description"           (uses CC_AGENT_ID from env)
-
     set -uo pipefail
-
     INBOX="$HOME/.cursor/command-center-agents"
     ENABLED="$INBOX/.enabled"
-
-    # If Command Center has been uninstalled, silently do nothing.
     [[ -f "$ENABLED" ]] || { return 0 2>/dev/null || exit 0; }
-
-    ACTION="${1:-}"
-    DESC="${2:-Agent working}"
-    DESC="${DESC:0:60}"
-
+    ACTION="${1:-}"; DESC="${2:-Agent working}"; DESC="${DESC:0:60}"
     _cc_now() { date -u +%Y-%m-%dT%H:%M:%S.000Z; }
-
     case "$ACTION" in
-      start)
-        export CC_AGENT_ID
-        CC_AGENT_ID="$(openssl rand -hex 4)"
-        mkdir -p "$INBOX"
-        cat > "$INBOX/${CC_AGENT_ID}.json" <<SIGNAL
+      start) export CC_AGENT_ID; CC_AGENT_ID="$(openssl rand -hex 4)"; mkdir -p "$INBOX"
+        cat > "$INBOX/${CC_AGENT_ID}.json" <<S
     {"schemaVersion":2,"agentTurnActive":true,"updatedAt":"$(_cc_now)","workspacePath":"$(pwd)","taskDescription":"$DESC"}
-    SIGNAL
+    S
         ;;
-      done)
-        if [[ -z "${CC_AGENT_ID:-}" ]]; then
-          echo "cc-signal: CC_AGENT_ID not set — did you 'source cc-signal start' first?" >&2
-          return 1 2>/dev/null || exit 1
-        fi
-        local_now="$(_cc_now)"
-        cat > "$INBOX/${CC_AGENT_ID}.json" <<SIGNAL
+      done) [[ -z "${CC_AGENT_ID:-}" ]] && { echo "No CC_AGENT_ID" >&2; return 1 2>/dev/null || exit 1; }
+        local_now="$(_cc_now)"; cat > "$INBOX/${CC_AGENT_ID}.json" <<S
     {"schemaVersion":2,"agentTurnActive":false,"updatedAt":"$local_now","lastResponseCompletedAt":"$local_now","workspacePath":"$(pwd)","taskDescription":"$DESC"}
-    SIGNAL
+    S
         ;;
-      *)
-        echo "Usage: source cc-signal start \\"description\\"  |  cc-signal done \\"description\\"" >&2
-        return 1 2>/dev/null || exit 1
+      waiting) [[ -z "${CC_AGENT_ID:-}" ]] && { echo "No CC_AGENT_ID" >&2; return 1 2>/dev/null || exit 1; }
+        local_now="$(_cc_now)"; cat > "$INBOX/${CC_AGENT_ID}.json" <<S
+    {"schemaVersion":2,"agentTurnActive":false,"awaitingInput":true,"updatedAt":"$local_now","workspacePath":"$(pwd)","taskDescription":"$DESC"}
+    S
         ;;
+      *) echo "Usage: source cc-signal start|done|waiting desc" >&2; return 1 2>/dev/null || exit 1 ;;
     esac
     """
 }
