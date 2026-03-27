@@ -53,9 +53,18 @@ public final class POCViewModel: ObservableObject {
 
     public func acknowledgeDone(forAgentId agentId: String) {
         guard let idx = tiles.firstIndex(where: { $0.id == agentId }) else { return }
-        guard tiles[idx].agentState == .recentlyCompleted else { return }
+        guard tiles[idx].agentState == .recentlyCompleted || tiles[idx].agentState == .waitingForInput else { return }
         tiles[idx].agentState = .idle
         registry.acknowledgeDone(agentId: agentId)
+    }
+
+    public func moveTile(fromId: String, toId: String) {
+        guard let fromIndex = tiles.firstIndex(where: { $0.id == fromId }),
+              let toIndex = tiles.firstIndex(where: { $0.id == toId }),
+              fromIndex != toIndex else { return }
+        let tile = tiles.remove(at: fromIndex)
+        tiles.insert(tile, at: toIndex)
+        registry.reorderTiles(orderedIds: tiles.map(\.id))
     }
 
     public func pollOnce() async {

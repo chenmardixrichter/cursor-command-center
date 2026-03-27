@@ -16,6 +16,7 @@ public struct AgentRegistryEntry: Codable, Equatable, Sendable {
 public final class AgentRegistry: @unchecked Sendable {
     private let filePath: URL
     private var entries: [AgentRegistryEntry] = []
+    private var tileOrder: [String] = []
     private let lock = NSLock()
 
     public init() {
@@ -27,19 +28,30 @@ public final class AgentRegistry: @unchecked Sendable {
 
     // MARK: - Persistence
 
+    private struct RegistryFile: Codable {
+        var entries: [AgentRegistryEntry]
+        var tileOrder: [String]?
+    }
+
     private func load() {
         guard let data = try? Data(contentsOf: filePath) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let decoded = try? decoder.decode([AgentRegistryEntry].self, from: data) else { return }
-        entries = decoded
+        if let file = try? decoder.decode(RegistryFile.self, from: data) {
+            entries = file.entries
+            tileOrder = file.tileOrder ?? []
+        } else if let legacy = try? decoder.decode([AgentRegistryEntry].self, from: data) {
+            entries = legacy
+            tileOrder = []
+        }
     }
 
     private func save() {
+        let file = RegistryFile(entries: entries, tileOrder: tileOrder)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(entries) else { return }
+        guard let data = try? encoder.encode(file) else { return }
         try? FileManager.default.createDirectory(
             at: filePath.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -75,7 +87,8 @@ public final class AgentRegistry: @unchecked Sendable {
 
         save()
 
-        return entries.filter { !$0.dismissed }.map { entry in
+        let visibleEntries = entries.filter { !$0.dismissed }
+        let tiles = visibleEntries.map { entry in
             AgentTile(
                 id: entry.agentId,
                 workspacePath: entry.workspacePath,
@@ -84,6 +97,13 @@ public final class AgentRegistry: @unchecked Sendable {
                 agentState: AgentTile.AgentState(rawValue: entry.state) ?? .idle,
                 lastActiveAt: entry.lastActiveAt
             )
+        }
+
+        guard !tileOrder.isEmpty else { return tiles }
+        return tiles.sorted { a, b in
+            let ai = tileOrder.firstIndex(of: a.id) ?? Int.max
+            let bi = tileOrder.firstIndex(of: b.id) ?? Int.max
+            return ai < bi
         }
     }
 
@@ -208,6 +228,13 @@ public final class AgentRegistry: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return entries.first(where: { $0.agentId == agentId })?.displayName
+    }
+
+    public func reorderTiles(orderedIds: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+        tileOrder = orderedIds
+        save()
     }
 
     /// Returns workspace paths of all non-dismissed entries (for legacy v1 signal scanning).

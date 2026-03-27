@@ -130,6 +130,7 @@ private struct POCContentView: View {
     @EnvironmentObject private var viewModel: POCViewModel
     @State private var showSettings = false
     @State private var showUninstallConfirm = false
+    @State private var draggingTileId: String?
 
     private var thinkingCount: Int {
         viewModel.tiles.filter { $0.agentState == .thinking }.count
@@ -199,6 +200,16 @@ private struct POCContentView: View {
                                     viewModel.setDisplayName(newName, forAgentId: tile.id)
                                 }
                             )
+                            .opacity(draggingTileId == tile.id ? 0.4 : 1.0)
+                            .onDrag {
+                                draggingTileId = tile.id
+                                return NSItemProvider(object: tile.id as NSString)
+                            }
+                            .onDrop(of: [.text], delegate: TileDropDelegate(
+                                tileId: tile.id,
+                                draggingTileId: $draggingTileId,
+                                viewModel: viewModel
+                            ))
                         }
                     }
                 }
@@ -288,6 +299,32 @@ private struct POCContentView: View {
     }
 }
 
+private struct TileDropDelegate: DropDelegate {
+    let tileId: String
+    @Binding var draggingTileId: String?
+    let viewModel: POCViewModel
+
+    func dropEntered(info: DropInfo) {
+        guard let from = draggingTileId, from != tileId else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            viewModel.moveTile(fromId: from, toId: tileId)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingTileId = nil
+        return true
+    }
+
+    func dropExited(info: DropInfo) {}
+
+    func validateDrop(info: DropInfo) -> Bool { true }
+}
+
 private struct TileView: View {
     let tile: AgentTile
     let onAcknowledgeDone: () -> Void
@@ -317,8 +354,7 @@ private struct TileView: View {
                     Text(tile.displayName)
                         .font(.system(.body, design: .monospaced, weight: .semibold))
                         .foregroundStyle(tile.agentState == .idle ? textMid : .white)
-
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .onTapGesture(count: 2) {
                             editText = tile.displayName
                             isEditing = true
