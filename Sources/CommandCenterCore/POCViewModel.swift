@@ -6,7 +6,14 @@ public final class POCViewModel: ObservableObject {
     @Published public private(set) var tiles: [AgentTile] = []
     @Published public private(set) var statusLine: String = ""
 
+    /// Set when GitHub `releases/latest` is newer than this build (and not dismissed for that version).
+    @Published public private(set) var updateOffer: ReleaseUpdateOffer?
+    @Published public private(set) var isDownloadingUpdate = false
+
     public let pollInterval: TimeInterval = 1.0
+
+    private static let dismissedUpdateVersionKey = "commandCenter.dismissedUpdateVersion"
+    private var updateCheckTask: Task<Void, Never>?
 
     public init() {}
 
@@ -25,11 +32,18 @@ public final class POCViewModel: ObservableObject {
                 try? await Task.sleep(for: .seconds(self.pollInterval))
             }
         }
+        updateCheckTask?.cancel()
+        updateCheckTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            await self?.refreshUpdateOffer()
+        }
     }
 
     public func stop() {
         pollTask?.cancel()
         pollTask = nil
+        updateCheckTask?.cancel()
+        updateCheckTask = nil
     }
 
     public func refreshNow() {
@@ -65,6 +79,39 @@ public final class POCViewModel: ObservableObject {
         let tile = tiles.remove(at: fromIndex)
         tiles.insert(tile, at: toIndex)
         registry.reorderTiles(orderedIds: tiles.map(\.id))
+    }
+
+
+    public func dismissUpdateBanner() {
+        if let offer = updateOffer {
+            UserDefaults.standard.set(offer.version, forKey: Self.dismissedUpdateVersionKey)
+            updateOffer = nil
+        }
+    }
+
+    /// Fetches GitHub latest release; shows banner only if newer than this app and not dismissed for that version.
+    public func refreshUpdateOffer() async {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+        guard let offer = await ReleaseUpdateCheck.fetchUpdateIfNewer(currentVersion: v) else {
+            updateOffer = nil
+            return
+        }
+        let dismissed = UserDefaults.standard.string(forKey: Self.dismissedUpdateVersionKey)
+        if dismissed == offer.version {
+            updateOffer = nil
+        } else {
+            updateOffer = offer
+        }
+    }
+
+    @MainActor
+    public func downloadUpdateArtifact() async throws -> URL {
+        guard let offer = updateOffer else {
+            throw URLError(.cancelled)
+        }
+        isDownloadingUpdate = true
+        defer { isDownloadingUpdate = false }
+        return try await ReleaseUpdateCheck.downloadZip(from: offer.downloadURL)
     }
 
     public func pollOnce() async {

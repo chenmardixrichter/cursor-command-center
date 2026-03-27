@@ -131,6 +131,7 @@ private struct POCContentView: View {
     @State private var showSettings = false
     @State private var showUninstallConfirm = false
     @State private var draggingTileId: String?
+    @State private var updateInstallError: String?
 
     private var thinkingCount: Int {
         viewModel.tiles.filter { $0.agentState == .thinking }.count
@@ -147,6 +148,58 @@ private struct POCContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let offer = viewModel.updateOffer {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(accentTeal)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Update available")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text("v\(offer.version) is published on GitHub.")
+                            .font(.caption2)
+                            .foregroundStyle(textDim)
+                    }
+                    Spacer(minLength: 8)
+                    if viewModel.isDownloadingUpdate {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Button("Install") {
+                            Task { @MainActor in
+                                do {
+                                    let zip = try await viewModel.downloadUpdateArtifact()
+                                    try UpdateInstaller.spawnInstallAfterQuit(zipPath: zip)
+                                    NSApplication.shared.terminate(nil)
+                                } catch {
+                                    updateInstallError = error.localizedDescription
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(accentTeal)
+                        .controlSize(.small)
+                        Button("Later") {
+                            viewModel.dismissUpdateBanner()
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(textMid)
+                        .font(.caption)
+                    }
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(bgTile)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(accentTeal.opacity(0.45), lineWidth: 1)
+                        )
+                )
+            }
+
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("CURSOR COMMANDER")
@@ -220,6 +273,15 @@ private struct POCContentView: View {
         .background(bgDark)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             viewModel.refreshNow()
+            Task { await viewModel.refreshUpdateOffer() }
+        }
+        .alert("Update install failed", isPresented: Binding(
+            get: { updateInstallError != nil },
+            set: { if !$0 { updateInstallError = nil } }
+        )) {
+            Button("OK", role: .cancel) { updateInstallError = nil }
+        } message: {
+            Text(updateInstallError ?? "")
         }
     }
 
@@ -266,6 +328,11 @@ private struct POCContentView: View {
                     .foregroundStyle(.tertiary)
                     .textSelection(.enabled)
             }
+            Divider()
+            Button("Check for updates") {
+                Task { await viewModel.refreshUpdateOffer() }
+            }
+            .font(.caption)
             Divider()
             VStack(alignment: .leading, spacing: 8) {
                 Button("Reinstall Cursor Rule") {
