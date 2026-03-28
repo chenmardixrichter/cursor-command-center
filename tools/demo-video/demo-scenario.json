@@ -1,20 +1,18 @@
 {
   "phases": [
-    {
-      "wait_seconds": 0,
-      "tiles": [
-        { "slot": 1, "name": "Planning roadmap", "state": "thinking" },
-        { "slot": 2, "name": "Review analytics PR", "state": "waiting" },
-        { "slot": 3, "name": "Write release notes", "state": "done" },
-        { "slot": 4, "name": "Inbox triage", "state": "idle" }
-      ]
-    },
-    {
-      "wait_seconds": 4,
-      "tiles": [
-        { "slot": 1, "name": "Planning roadmap", "state": "done" },
-        { "slot": 2, "name": "Review analytics PR", "state": "thinking" }
-      ]
-    }
+    { "wait_seconds": 4.35, "tiles": [] },
+    { "wait_seconds": 0, "tiles": [{ "slot": 1, "name": "Command Center", "state": "thinking" }] },
+    { "wait_seconds": 0.85, "tiles": [{ "slot": 2, "name": "AI Credits overage", "state": "thinking" }] },
+    { "wait_seconds": 0.95, "tiles": [{ "slot": 3, "name": "Plan enforcer research", "state": "waiting" }] },
+    { "wait_seconds": 0.75, "tiles": [{ "slot": 4, "name": "AB test analysis", "state": "thinking" }] },
+    { "wait_seconds": 0.9, "tiles": [{ "slot": 5, "name": "NPO UI changes", "state": "thinking" }] },
+    { "wait_seconds": 1.0, "tiles": [{ "slot": 6, "name": "Personal project", "state": "thinking" }] },
+    { "wait_seconds": 1.35, "tiles": [{ "slot": 2, "name": "AI Credits overage", "state": "done" }, { "slot": 4, "name": "AB test analysis", "state": "waiting" }] },
+    { "wait_seconds": 1.25, "tiles": [{ "slot": 1, "name": "Command Center", "state": "waiting" }, { "slot": 3, "name": "Plan enforcer research", "state": "done" }] },
+    { "wait_seconds": 1.2, "tiles": [{ "slot": 5, "name": "NPO UI changes", "state": "waiting" }, { "slot": 6, "name": "Personal project", "state": "done" }] },
+    { "wait_seconds": 1.4, "tiles": [{ "slot": 1, "name": "Command Center", "state": "done" }, { "slot": 4, "name": "AB test analysis", "state": "thinking" }] },
+    { "wait_seconds": 1.3, "tiles": [{ "slot": 2, "name": "AI Credits overage", "state": "thinking" }, { "slot": 5, "name": "NPO UI changes", "state": "done" }] },
+    { "wait_seconds": 1.5, "tiles": [{ "slot": 3, "name": "Plan enforcer research", "state": "thinking" }, { "slot": 6, "name": "Personal project", "state": "waiting" }] },
+    { "wait_seconds": 3.2, "tiles": [{ "slot": 1, "name": "Command Center", "state": "thinking" }, { "slot": 2, "name": "AI Credits overage", "state": "waiting" }, { "slot": 3, "name": "Plan enforcer research", "state": "done" }, { "slot": 4, "name": "AB test analysis", "state": "done" }, { "slot": 5, "name": "NPO UI changes", "state": "thinking" }, { "slot": 6, "name": "Personal project", "state": "idle" }] }
   ]
 }
