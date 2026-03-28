@@ -2,17 +2,35 @@
 
 Use this to drive fake tiles while you record the app — no real Cursor agent needed.
 
+## Important: run on your Mac
+
+Command Center reads signals from **`$HOME/.cursor/command-center-agents/`** on **your Mac**.
+
+If you ask a **Cursor AI agent** to run `demo-simulate.py`, it may execute in an environment where files are **not** written to that folder (e.g. remote or sandbox). The app would then only show **your real Cursor session** tile — not the demo tiles.
+
+**For recording:** open **Terminal.app** (or iTerm), `cd` to this folder, and run:
+
+```bash
+./run-demo-local.sh --reset
+```
+
+`run-demo-local.sh` uses your shell’s `HOME` so paths match Command Center.
+
+Verify: the script prints `inbox: /Users/you/.cursor/...`. Optionally check **Settings → Diagnostics** in Command Center: **`v2:`** should match how many `.json` signal files you expect.
+
 ## Quick start
 
 ```bash
 cd tools/demo-video
 cp demo-scenario.example.json demo-scenario.json
-python3 demo-simulate.py --reset
+./run-demo-local.sh --reset
 ```
 
-`--reset` deletes `~/.cursor/command-center-agents/demo-slot-*.json` and `~/.cursor/command-center-registry.json` so you start clean. Omit `--reset` if you’re continuing a run.
+`--reset` deletes `demo-slot-*.json` and `~/.cursor/command-center-registry.json`. Omit `--reset` if you’re continuing a run.
 
 Keep **Command Center** open; it polls about once per second.
+
+Optional env: `COMMAND_CENTER_INBOX=/absolute/path/to/command-center-agents`
 
 ## Scenario format
 
@@ -36,20 +54,19 @@ Each tile:
 - **done** — green “DONE” (stays until you click the tile or reset)
 - **idle** — gray “IDLE”
 
-**Note:** A tile that is already **done** usually stays “DONE” until you click it in the UI (acknowledge) or you `--reset`. For a scripted **done → idle** story, use `--reset` between takes or click during recording.
+**Note:** A tile that is already **done** usually stays “DONE” until you click it in the UI (acknowledge) or you `--reset`.
 
 ## Tips
 
 - Use **fewer tiles** first, then add phases to show state changes.
 - Long **wait_seconds** between phases gives you time to narrate.
-- Run `python3 demo-simulate.py` again without `--reset` to apply only the next scenario if you keep the same slots.
 
 ## Clearing demo tiles
 
-- **Dismiss (×)** on a tile should work even if the JSON still says `thinking` (fixed in app ≥ the dismiss-resurrection bugfix).
-- Or delete the files: `rm ~/.cursor/command-center-agents/demo-slot-*.json`
-- Full reset: `python3 demo-simulate.py --reset` (also clears the registry file).
+- **Dismiss (×)** on a tile — works even if the JSON still says `thinking`.
+- Or: `rm ~/.cursor/command-center-agents/demo-slot-*.json`
+- Full reset: `./run-demo-local.sh --reset`
 
 ## Requirements
 
-`~/.cursor/command-center-agents/.enabled` must exist (open the real Command Center once so it installs the inbox + marker).
+`~/.cursor/command-center-agents/.enabled` must exist (open Command Center once so it installs the inbox + marker).

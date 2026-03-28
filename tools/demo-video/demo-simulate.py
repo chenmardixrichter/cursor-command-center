@@ -2,16 +2,21 @@
 """
 Write Command Center v2 signal JSON files for screen recording demos.
 
-Edit demo-scenario.json (copy from demo-scenario.example.json), then run:
-  python3 demo-simulate.py
-  python3 demo-simulate.py --reset   # remove demo signals + registry for a clean slate
+Run ON YOUR MAC in Terminal.app (same user as Command Center):
 
-Requires ~/.cursor/command-center-agents/.enabled (Command Center installed once).
+  cd tools/demo-video
+  ./run-demo-local.sh --reset
+
+**If a Cursor agent runs this for you**, files may NOT land in your Mac's real
+~/.cursor/command-center-agents — Command Center would only show your live session.
+
+Optional: COMMAND_CENTER_INBOX=/absolute/path/to/command-center-agents
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -20,8 +25,15 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_SCENARIO = SCRIPT_DIR / "demo-scenario.json"
 
-INBOX = Path.home() / ".cursor/command-center-agents"
-ENABLED = INBOX / ".enabled"
+
+def resolve_inbox() -> Path:
+    override = os.environ.get("COMMAND_CENTER_INBOX", "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
+    home = os.environ.get("HOME", "").strip()
+    if home:
+        return Path(home).expanduser().resolve() / ".cursor" / "command-center-agents"
+    return Path.home() / ".cursor" / "command-center-agents"
 
 
 def iso_now() -> str:
@@ -69,30 +81,32 @@ def build_payload(state: str, name: str, slot: int) -> dict:
     raise ValueError(f"Unknown state: {state!r} (use thinking|waiting|done|idle)")
 
 
-def write_slot(slot: int, name: str, state: str) -> None:
+def write_slot(inbox: Path, slot: int, name: str, state: str) -> None:
     payload = build_payload(state, name, slot)
     fname = f"demo-slot-{slot:02d}.json"
-    path = INBOX / fname
-    INBOX.mkdir(parents=True, exist_ok=True)
+    path = inbox / fname
+    inbox.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"  wrote {fname} → {state!r} {name!r}", file=sys.stderr)
 
 
-def reset_demo_files() -> None:
-    if INBOX.exists():
-        for p in INBOX.glob("demo-slot-*.json"):
+def reset_demo_files(inbox: Path) -> None:
+    if inbox.exists():
+        for p in inbox.glob("demo-slot-*.json"):
             p.unlink(missing_ok=True)
             print(f"  removed {p.name}", file=sys.stderr)
-    reg = Path.home() / ".cursor/command-center-registry.json"
+    reg = inbox.parent / "command-center-registry.json"
     if reg.exists():
         reg.unlink()
         print("  removed command-center-registry.json", file=sys.stderr)
 
 
-def run_scenario(path: Path) -> None:
-    if not ENABLED.exists():
+def run_scenario(path: Path, inbox: Path) -> None:
+    enabled = inbox / ".enabled"
+    if not enabled.exists():
         print(
-            "Missing ~/.cursor/command-center-agents/.enabled — open Command Center once first.",
+            "Missing .enabled in inbox — open Command Center once first.\n"
+            f"Expected: {enabled}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -114,7 +128,10 @@ def run_scenario(path: Path) -> None:
             slot = int(tile["slot"])
             name = str(tile.get("name") or f"Slot {slot}")
             state = str(tile.get("state") or "idle")
-            write_slot(slot, name, state)
+            write_slot(inbox, slot, name, state)
+
+    n_demo = len(list(inbox.glob("demo-slot-*.json")))
+    print(f"-- inbox now has {n_demo} demo-slot-*.json under:\n   {inbox}", file=sys.stderr)
 
 
 def main() -> None:
@@ -134,17 +151,31 @@ def main() -> None:
     args = ap.parse_args()
     scenario: Path = args.scenario
 
+    inbox = resolve_inbox()
+    env_home = os.environ.get("HOME", "")
+    print(
+        f"-- inbox: {inbox}\n"
+        f"   HOME={env_home or '(unset)'}\n"
+        f"   Path.home()={Path.home()}",
+        file=sys.stderr,
+    )
+    if env_home and Path.home() != Path(env_home).expanduser():
+        print(
+            "   WARNING: HOME and Path.home() differ — use Terminal.app and ./run-demo-local.sh",
+            file=sys.stderr,
+        )
+
     if args.reset:
         print("-- reset", file=sys.stderr)
-        reset_demo_files()
+        reset_demo_files(inbox)
 
     if not scenario.exists():
         print(f"Scenario not found: {scenario}", file=sys.stderr)
-        print(f"Copy demo-scenario.example.json to demo-scenario.json", file=sys.stderr)
+        print("Copy demo-scenario.example.json to demo-scenario.json", file=sys.stderr)
         sys.exit(1)
 
-    run_scenario(scenario)
-    print("Done. Watch Command Center (polls ~1s).", file=sys.stderr)
+    run_scenario(scenario, inbox)
+    print("Done. Command Center polls ~1/s; Settings → Diagnostics shows v2: N.", file=sys.stderr)
 
 
 if __name__ == "__main__":
