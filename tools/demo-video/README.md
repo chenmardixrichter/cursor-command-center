@@ -44,6 +44,12 @@ Each tile:
 - Long **wait_seconds** between phases gives you time to narrate.
 - Run `python3 demo-simulate.py` again without `--reset` to apply only the next scenario if you keep the same slots.
 
+## Clearing demo tiles
+
+- **Dismiss (×)** on a tile should work even if the JSON still says `thinking` (fixed in app ≥ the dismiss-resurrection bugfix).
+- Or delete the files: `rm ~/.cursor/command-center-agents/demo-slot-*.json`
+- Full reset: `python3 demo-simulate.py --reset` (also clears the registry file).
+
 ## Requirements
 
 `~/.cursor/command-center-agents/.enabled` must exist (open the real Command Center once so it installs the inbox + marker).

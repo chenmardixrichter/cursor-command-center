@@ -110,12 +110,11 @@ public final class AgentRegistry: @unchecked Sendable {
     private func matchSignal(_ signal: AgentSignalV2, now: Date, matchedFileIds: inout Set<String>) {
         if matchedFileIds.contains(signal.fileId) { return }
 
-        // If a dismissed entry owns this signal file, ignore unless the agent is actively thinking again
-        if let _ = entries.firstIndex(where: { $0.lastSignalFileId == signal.fileId && $0.dismissed }) {
-            if !signal.agentTurnActive {
-                matchedFileIds.insert(signal.fileId)
-                return
-            }
+        // If a dismissed entry owns this signal file, ignore it entirely — otherwise a still-"thinking"
+        // JSON on disk would fall through and spawn a new tile every poll (demo scripts, stale files).
+        if entries.contains(where: { $0.lastSignalFileId == signal.fileId && $0.dismissed }) {
+            matchedFileIds.insert(signal.fileId)
+            return
         }
 
         if let idx = entries.firstIndex(where: { $0.lastSignalFileId == signal.fileId && !$0.dismissed }) {
