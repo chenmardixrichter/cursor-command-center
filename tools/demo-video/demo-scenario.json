@@ -1,0 +1,20 @@
+{
+  "phases": [
+    {
+      "wait_seconds": 0,
+      "tiles": [
+        { "slot": 1, "name": "Planning roadmap", "state": "thinking" },
+        { "slot": 2, "name": "Review analytics PR", "state": "waiting" },
+        { "slot": 3, "name": "Write release notes", "state": "done" },
+        { "slot": 4, "name": "Inbox triage", "state": "idle" }
+      ]
+    },
+    {
+      "wait_seconds": 4,
+      "tiles": [
+        { "slot": 1, "name": "Planning roadmap", "state": "done" },
+        { "slot": 2, "name": "Review analytics PR", "state": "thinking" }
+      ]
+    }
+  ]
+}
