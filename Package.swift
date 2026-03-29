@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .target(
             name: "CommandCenterCore",
-            path: "Sources/CommandCenterCore"
+            path: "Sources/CommandCenterCore",
+            resources: [.copy("Resources/cc-signal.sh")]
         ),
         .executableTarget(
             name: "CommandCenter",

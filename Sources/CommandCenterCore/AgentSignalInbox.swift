@@ -10,6 +10,14 @@ public struct AgentSignalV2: Equatable, Sendable {
     public var taskDescription: String?
 }
 
+extension AgentSignalV2 {
+    /// `true` for `demo-slot-NN.json` from `tools/demo-video/demo-simulate.py` (fake workspaces under `/tmp/...`).
+    /// Real sessions: `cc-signal` uses a stable inbox filename per agent (see `CURSOR_TRACE_ID` / `.cursor/command-center-agent-id`).
+    public var isDemoSimulatedSignal: Bool {
+        fileId.hasPrefix("demo-slot-")
+    }
+}
+
 /// Reads v2 signal files from `~/.cursor/command-center-agents/`.
 /// Each agent turn writes a single JSON file; the Command Center scans this directory every poll cycle.
 public enum AgentSignalInbox {
@@ -75,6 +83,18 @@ public enum AgentSignalInbox {
 
     // MARK: - V1 backward compatibility
 
+    /// Stable id from the **full** workspace path. Old code used `legacy-<lastPathComponent>` only, so two different
+    /// folders named e.g. `command-center` shared one tile and one renamed display name.
+    public static func stableLegacyFileId(forWorkspacePath path: String) -> String {
+        let n = URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL.path
+        var h: UInt64 = 14_695_981_039_346_656_037 // FNV-1a offset basis
+        for b in n.utf8 {
+            h ^= UInt64(b)
+            h = h &* 1_099_511_628_211 // FNV prime
+        }
+        return "legacy-\(String(h, radix: 16))"
+    }
+
     /// Reads a legacy v1 signal file from a workspace path and converts it to a v2 signal.
     public static func readLegacySignal(workspacePath: String, now: Date = Date()) -> AgentSignalV2? {
         let url = URL(fileURLWithPath: workspacePath, isDirectory: true)
@@ -103,9 +123,8 @@ public enum AgentSignalInbox {
             return nil
         }()
 
-        let leafName = (workspacePath as NSString).lastPathComponent
         return AgentSignalV2(
-            fileId: "legacy-\(leafName)",
+            fileId: stableLegacyFileId(forWorkspacePath: workspacePath),
             agentTurnActive: active,
             awaitingInput: false,
             updatedAt: at,

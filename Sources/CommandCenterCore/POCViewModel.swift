@@ -53,8 +53,9 @@ public final class POCViewModel: ObservableObject {
         }
     }
 
-    public func dismiss(agentId: String) {
-        registry.dismiss(agentId: agentId)
+    /// - Parameter permanent: If `false`, snooze this tile; the next `cc-signal start` (new JSON) can add a new tile for the same workspace. If `true`, ignore this signal file id until registry reset / manual edit.
+    public func dismiss(agentId: String, permanent: Bool) {
+        registry.dismiss(agentId: agentId, permanent: permanent)
         tiles.removeAll { $0.id == agentId }
     }
 

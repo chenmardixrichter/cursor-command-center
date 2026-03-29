@@ -244,9 +244,9 @@ private struct POCContentView: View {
                                     }
                                     CursorWindowActivator.activate(tile: tile)
                                 },
-                                onDismiss: {
+                                onDismiss: { permanent in
                                     withAnimation(.easeOut(duration: 0.2)) {
-                                        viewModel.dismiss(agentId: tile.id)
+                                        viewModel.dismiss(agentId: tile.id, permanent: permanent)
                                     }
                                 },
                                 onRename: { newName in
@@ -396,7 +396,8 @@ private struct TileView: View {
     let tile: AgentTile
     let onAcknowledgeDone: () -> Void
     let onActivate: () -> Void
-    let onDismiss: () -> Void
+    /// `permanent == true` means never show this signal file again until registry reset.
+    let onDismiss: (_ permanent: Bool) -> Void
     let onRename: (String) -> Void
     @State private var isEditing = false
     @State private var editText = ""
@@ -405,52 +406,31 @@ private struct TileView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 6) {
-                if isEditing {
-                    TextField("Tile name", text: $editText, onCommit: commitEdit)
-                        .font(.system(.body, design: .monospaced, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .textFieldStyle(.plain)
-                        .focused($fieldFocused)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .onExitCommand { cancelEdit() }
-                } else {
-                    Text(tile.displayName)
-                        .font(.system(.body, design: .monospaced, weight: .semibold))
-                        .foregroundStyle(tile.agentState == .idle ? textMid : .white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .onTapGesture(count: 2) {
-                            editText = tile.displayName
-                            isEditing = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                fieldFocused = true
-                            }
+            if isEditing {
+                TextField("Tile name", text: $editText, onCommit: commitEdit)
+                    .font(.system(.body, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .textFieldStyle(.plain)
+                    .focused($fieldFocused)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .onExitCommand { cancelEdit() }
+            } else {
+                Text(tile.displayName)
+                    .font(.system(.body, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(tile.agentState == .idle ? textMid : .white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onTapGesture(count: 2) {
+                        editText = tile.displayName
+                        isEditing = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            fieldFocused = true
                         }
-                }
-                // Fixed slot so the dismiss control never steals width from the title on hover.
-                ZStack {
-                    if isHovering {
-                        Button {
-                            onDismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(textDim)
-                                .frame(width: 16, height: 16)
-                                .background(Color.white.opacity(0.06))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("Remove agent tile")
-                        .transition(.opacity)
                     }
-                }
-                .frame(width: 20, height: 18)
             }
 
             Text(tile.workspacePath)
@@ -473,14 +453,39 @@ private struct TileView: View {
                 .stroke(tileBorderColor, lineWidth: tileBorderWidth)
         )
         .shadow(color: tileShadowColor, radius: tileShadowRadius, x: 0, y: 0)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onActivate()
+        .overlay(alignment: .topTrailing) {
+            if isHovering {
+                Menu {
+                    Button("Hide until next activity") {
+                        onDismiss(false)
+                    }
+                    Button("Hide permanently") {
+                        onDismiss(true)
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white.opacity(0.72))
+                        .frame(width: 22, height: 22)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Hide tile: snooze until next cc-signal turn, or ignore this signal file")
+                .transition(.opacity)
+                // Tight to the card’s top-trailing corner (inside the padded content area).
+                .padding(.top, 2)
+                .padding(.trailing, 2)
+            }
         }
+        .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovering = hovering
             }
+        }
+        .onTapGesture {
+            onActivate()
         }
     }
 

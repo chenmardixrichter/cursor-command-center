@@ -40,7 +40,7 @@ No permissions are required for core functionality. If you want the "click tile 
 ## Features
 
 - **Live agent tiles** — one tile per agent conversation, showing thinking/done/idle status
-- **Persistent tiles** — tiles stay until you dismiss them (click the X)
+- **Persistent tiles** — tiles stay until you dismiss them (X opens **Hide until next activity** vs **Hide permanently**)
 - **Sticky "Done"** — done status stays until you click the tile to acknowledge
 - **Custom names** — double-click any tile name to rename it
 - **Quick focus** — click a tile to bring that Cursor window to the front

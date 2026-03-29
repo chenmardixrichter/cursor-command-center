@@ -108,7 +108,16 @@ public enum FirstLaunchSetup {
         if let existing = try? String(contentsOf: url, encoding: .utf8), !existing.isEmpty {
             return existing
         }
-        return fallbackHelperContent
+        return bundledHelperScriptFallback
+    }
+
+    /// Shipped as `Resources/cc-signal.sh`; used when `~/.cursor/bin/cc-signal` is missing.
+    private static var bundledHelperScriptFallback: String {
+        if let u = Bundle.module.url(forResource: "cc-signal", withExtension: "sh"),
+           let s = try? String(contentsOf: u, encoding: .utf8), !s.isEmpty {
+            return s
+        }
+        return minimalEmbeddedHelperScript
     }
 
     private static let fallbackRuleContent = """
@@ -121,7 +130,7 @@ public enum FirstLaunchSetup {
     Run `~/.cursor/bin/cc-signal done "description"` or `~/.cursor/bin/cc-signal waiting "description"` at the END.
     """
 
-    private static let fallbackHelperContent = """
+    private static let minimalEmbeddedHelperScript = """
     #!/usr/bin/env bash
     set -uo pipefail
     INBOX="$HOME/.cursor/command-center-agents"

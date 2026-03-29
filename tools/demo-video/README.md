@@ -1,6 +1,18 @@
 # Command Center — video demo simulator
 
-Use this to drive fake tiles while you record the app — no real Cursor agent needed.
+Use this to drive **fake** tiles while you record the app — no real Cursor agent needed.
+
+## Reality vs demo (read this)
+
+| | **Real Cursor agents** | **This demo simulator** |
+|---|------------------------|-------------------------|
+| **Purpose** | One tile per `cc-signal` JSON (multiple tiles per workspace possible); reflects live turns | **Appearance only** — simulate tiles for a screen recording |
+| **Signal files** | Unique JSON name per turn (from `cc-signal`) | Fixed names: `demo-slot-01.json` … under your inbox |
+| **Workspaces** | Your real project folders | Fake paths: `/tmp/command-center-demo/slot-NN` |
+| **After you dismiss** | Snooze vs permanent (same as production); permanent ignores that signal file id until registry reset | Dismiss removes demo rows; use `--reset` before the next take for a clean slate |
+| **When you’re done recording** | N/A | Dismiss demo tiles or run `--reset` — **normal behavior** for real agents is unchanged |
+
+**Typical recording flow:** Manually dismiss or clear tiles so the board is empty → run `./run-demo-local.sh --reset` → demo tiles appear → record → dismiss or `--reset`. Your real project tiles then follow the **real** rules above.
 
 ## Important: run on your Mac
 
@@ -27,6 +39,14 @@ cp demo-scenario.example.json demo-scenario.json
 ```
 
 `--reset` deletes `demo-slot-*.json` and `~/.cursor/command-center-registry.json`. Omit `--reset` if you’re continuing a run.
+
+### Troubleshooting: demo tiles vanished after I dismissed them
+
+Demo signals use **fixed** filenames (`demo-slot-01.json`, …). The app used to remember a dismissed demo as “never show this file id again,” so the **same** filenames would not come back until the registry was cleared.
+
+**Now:** dismissing a demo tile **removes** that row for `demo-slot-*` signals, so the next demo run can show tiles again **without** a full `--reset`. If something still looks stuck, run `./run-demo-local.sh --reset` or delete `~/.cursor/command-center-registry.json`.
+
+**Verify the dismiss/registry theory:** dismiss demo tiles → run the scenario **without** `--reset` → tiles should appear again after the registry fix. A full `--reset` also clears any leftover state.
 
 Keep **Command Center** open; it polls about once per second.
 

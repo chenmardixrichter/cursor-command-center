@@ -15,6 +15,7 @@ cursor-extension/**/*.vsix
 .cursor/command-center-agent-signal.json
 .cursor/command-center-agents/
 .cursor/command-center-command-log.txt
+.cursor/command-center-agent-id
 
 # macOS
 .DS_Store
